@@ -1,7 +1,25 @@
 import os
 import subprocess
 import time
+import atexit
 
+
+_daemons = {}  # venv_name -> { "rpc": path, "stream": path, "pid": pid }
+
+def _kill_all_daemons():
+    i = 0
+    for d in _daemons.values():
+        pid = d["pid"]
+        try:
+            if os.name == "nt":
+                subprocess.run(["taskkill", "/PID", str(pid), "/F"])
+            else:
+                os.kill(pid, 15)
+            i += 1
+        except:
+            pass
+    print(f"Killed {i} out of {len(_daemons)} spawned daemons")
+atexit.register(_kill_all_daemons)
 
 DAEMON_CODE = r"""
 import os, socket, struct, cloudpickle, traceback, sys, time
@@ -156,8 +174,6 @@ while True:
         stream_conn.close()
 """
 
-_daemons = {}  # venv_name -> { "rpc": path, "stream": path, "pid": pid }
-
 def _is_windows():
     return os.name == "nt"
 
@@ -218,6 +234,12 @@ def start_daemon(venv_name, timeout_sec):
 
     else:
         # POSIX: UNIX sockets
+        for f in (rpc_path, stream_path):
+            if os.path.exists(f):
+                try:
+                    os.remove(f)
+                except:
+                    pass
         env["ML3_RPC_SOCK"] = rpc_path
         env["ML3_STREAM_SOCK"] = stream_path
 
