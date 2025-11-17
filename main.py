@@ -13,8 +13,8 @@ def load_data():
 def assess(loader):   # default argument is env-decorated
     import numpy as np
     df = loader()
-    print(df["x"])
+    print("Input\n", df["x"])
     return float(np.mean(df["x"]))
 
-mean = assess(load_data)   # Creates .ml3/assess-load_data.txt
-print("mean", mean)
+result = assess(load_data)   # Creates .ml3/assess-load_data.txt
+print("Result:", result)
